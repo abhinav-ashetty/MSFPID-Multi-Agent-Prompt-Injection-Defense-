@@ -5,6 +5,7 @@ and Gemini assessment to produce a final security decision.
 """
 
 import logging
+import os
 from typing import Optional, List, Dict, Any
 import asyncio
 import math
@@ -58,7 +59,7 @@ class HybridRiskEngine:
 
         Args:
             rule_detector: Rule-based detector instance. If None, creates a new one.
-            ml_classifier: ML classifier instance. If None, creates a new one.
+            ml_classifier: ML classifier instance. If None, loads pre-trained model or creates a new one.
             defender_agent: DefenderAgent instance. If None, creates a new one.
             rule_weight: Weight for rule score (0-1). Default 0.3.
             ml_weight: Weight for ML probability (0-1). Default 0.3.
@@ -72,7 +73,23 @@ class HybridRiskEngine:
         """
         # Store detector instances (create if not provided)
         self.rule_detector = rule_detector or RuleBasedDetector()
-        self.ml_classifier = ml_classifier or PromptSecurityClassifier()
+
+        # Load or create ML classifier
+        if ml_classifier is not None:
+            self.ml_classifier = ml_classifier
+        else:
+            self.ml_classifier = PromptSecurityClassifier()
+            # Try to load pre-trained model
+            model_path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "models", "prompt_security_classifier.joblib")
+            if os.path.exists(model_path):
+                try:
+                    self.ml_classifier.load(model_path)
+                    logger.info(f"Loaded pre-trained ML model from {model_path}")
+                except Exception as e:
+                    logger.warning(f"Failed to load pre-trained model: {e}. Using untrained classifier.")
+            else:
+                logger.warning(f"Pre-trained model not found at {model_path}. Using untrained classifier.")
+
         self.defender_agent = defender_agent or DefenderAgent()
 
         # Validate and set weights
@@ -174,7 +191,9 @@ class HybridRiskEngine:
         # Run ML classification (synchronous)
         # The classifier expects a list of texts
         ml_prediction = self.ml_classifier.predict([prompt])[0]
-        ml_probability = self.ml_classifier.predict_proba([prompt])[0][1]  # Probability of class 1 (MALICIOUS)
+        ml_probas = self.ml_classifier.predict_proba([prompt])[0]  # [benign_prob, malicious_prob]
+        ml_prob_benign = ml_probas[0]
+        ml_probability = ml_probas[1]  # Probability of class 1 (MALICIOUS)
 
         # Run Gemini assessment (asynchronous)
         gemini_assessment: SecurityAssessment = await self.defender_agent.analyze(prompt)
@@ -212,7 +231,7 @@ class HybridRiskEngine:
         }
         ml_details = {
             "prediction": int(ml_prediction),
-            "probability_benign": float(self.ml_classifier.predict_proba([prompt])[0][0]),
+            "probability_benign": float(ml_prob_benign),
             "probability_malicious": ml_probability,
         }
         gemini_details = gemini_assessment.reason

@@ -34,4 +34,4 @@ joblib==1.4.2
 
 # Type Checking (optional, for development)
 # mypy==1.13.0
-# ruff==0.7.3
+# ruff==0.7.3sqlalchemy==2.0.36

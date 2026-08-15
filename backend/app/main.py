@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from app.core.config import settings
 from app.api import health
+from app.api import security
 
 
 @asynccontextmanager
@@ -30,6 +31,11 @@ def create_app() -> FastAPI:
     # Include API routers
     app.include_router(
         health.router,
+        prefix=settings.api_prefix,
+    )
+    
+    app.include_router(
+        security.router,
         prefix=settings.api_prefix,
     )
 

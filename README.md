@@ -1,3 +1,14 @@
+# MSFPID
+
+> 🚧 **Status: Under Development**
+
+[![Status](https://img.shields.io/badge/status-under%20development-orange)](https://github.com/)
+
+This project is currently under active development and is not yet production-ready.
+Features, architecture, APIs, and UI may change during development.
+
+Some features may be incomplete or unstable. This repository represents an ongoing work in progress.
+
 # AIShield
 
 A multi-agent AI security system demonstrating how a Defender Agent can detect, evaluate, and prevent attacks before they reach the Target Agent.
